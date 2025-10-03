@@ -240,6 +240,47 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/get_links", response_model=ChatResponse)
+async def get_links(request: ChatRequest):
+    """
+    Get YouTube links endpoint - returns formatted links for videos.
+    ElevenLabs can call this when user asks for links.
+    """
+    try:
+        # Perform vector search
+        search_request = SearchRequest(query=request.message, limit=3)
+        search_response = await vector_search(search_request)
+
+        # Format links response
+        if not search_response.results:
+            response_text = "I couldn't find any videos for that topic."
+        else:
+            # Build links list
+            links_parts = ["Here are the YouTube links:\n\n"]
+
+            for i, result in enumerate(search_response.results[:3], 1):
+                if result.url:
+                    links_parts.append(
+                        f"{i}. {result.document_title}\n{result.url}\n"
+                    )
+                else:
+                    links_parts.append(
+                        f"{i}. {result.document_title}\n(URL not available)\n"
+                    )
+
+            response_text = "\n".join(links_parts)
+
+        return ChatResponse(
+            message=response_text,
+            session_id=request.session_id,
+            timestamp=datetime.now()
+        )
+
+    except Exception as e:
+        logger.error(f"Get links failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def main():
     """Run the API server."""
     port = int(os.getenv("PORT", 8058))
