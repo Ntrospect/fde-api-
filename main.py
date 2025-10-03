@@ -159,6 +159,9 @@ async def vector_search(request: SearchRequest):
         )
         query_embedding = embedding_response.data[0].embedding
 
+        # Convert embedding list to PostgreSQL vector format string
+        embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
+
         # Search database using vector similarity
         async with db_pool.acquire() as conn:
             results = await conn.fetch("""
@@ -171,7 +174,7 @@ async def vector_search(request: SearchRequest):
                 WHERE c.embedding IS NOT NULL
                 ORDER BY c.embedding <=> $1::vector
                 LIMIT $2
-            """, query_embedding, request.limit)
+            """, embedding_str, request.limit)
 
         # Format results
         search_results = [
