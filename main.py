@@ -169,7 +169,7 @@ async def vector_search(request: SearchRequest):
                 SELECT
                     c.content,
                     d.title as document_title,
-                    d.source_url as document_url,
+                    d.metadata->>'url' as document_url,
                     1 - (c.embedding <=> $1::vector) as similarity
                 FROM chunks c
                 JOIN documents d ON c.document_id = d.id
