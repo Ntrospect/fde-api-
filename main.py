@@ -223,11 +223,16 @@ async def chat(request: ChatRequest):
                 if len(result.content) > 200:
                     content_preview += "..."
 
-                # Include URL if available
-                url_part = f"\nWatch: {result.url}" if result.url else ""
+                # Include video ID if available (extract from youtube.com/watch?v=VIDEO_ID)
+                video_info = ""
+                if result.url:
+                    # Extract video ID from URL
+                    if "watch?v=" in result.url:
+                        video_id = result.url.split("watch?v=")[-1].split("&")[0]
+                        video_info = f"\n[Video ID: {video_id}]"
 
                 response_parts.append(
-                    f"{i}. From '{result.document_title}':{url_part}\n{content_preview}\n"
+                    f"{i}. From '{result.document_title}':{video_info}\n{content_preview}\n"
                 )
 
             response_text = "\n".join(response_parts)
