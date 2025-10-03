@@ -49,6 +49,7 @@ class SearchRequest(BaseModel):
 class SearchResult(BaseModel):
     content: str
     document_title: str
+    url: Optional[str] = None
     similarity: Optional[float] = None
 
 
@@ -168,6 +169,7 @@ async def vector_search(request: SearchRequest):
                 SELECT
                     c.content,
                     d.title as document_title,
+                    d.url as document_url,
                     1 - (c.embedding <=> $1::vector) as similarity
                 FROM chunks c
                 JOIN documents d ON c.document_id = d.id
@@ -181,6 +183,7 @@ async def vector_search(request: SearchRequest):
             SearchResult(
                 content=row["content"],
                 document_title=row["document_title"] or "Unknown",
+                url=row.get("document_url"),
                 similarity=float(row["similarity"]) if row["similarity"] else None
             )
             for row in results
@@ -220,8 +223,11 @@ async def chat(request: ChatRequest):
                 if len(result.content) > 200:
                     content_preview += "..."
 
+                # Include URL if available
+                url_part = f"\nWatch: {result.url}" if result.url else ""
+
                 response_parts.append(
-                    f"{i}. From '{result.document_title}':\n{content_preview}\n"
+                    f"{i}. From '{result.document_title}':{url_part}\n{content_preview}\n"
                 )
 
             response_text = "\n".join(response_parts)
